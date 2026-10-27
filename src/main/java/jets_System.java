@@ -7,7 +7,7 @@ public class jets_System {
     private String filename;
     private FileManagerTools fileManagerTools;
 //Creating a fileManagerTools object
-    public jets_System(){
+    public jets_System(boolean isTest){
         this.fileManagerTools = new FileManagerTools();
         System.out.println("Enter the file name you would like to open: ->");
         String inputName = sc.nextLine().trim();
@@ -19,6 +19,12 @@ public class jets_System {
         else{
             this.filename = inputName;
         }
+        this.players = this.fileManagerTools.loadFromFile(this.filename);
+    }
+
+    public jets_System(){
+        this.fileManagerTools = new FileManagerTools();
+        this.filename = "Jets.txt";
         this.players = this.fileManagerTools.loadFromFile(this.filename);
     }
 
@@ -43,6 +49,7 @@ public class jets_System {
                 continue;
             }
             choice = sc.nextInt();
+            sc.nextLine();
             if(choice >= 1 && choice <=6){
                 break;
             }
@@ -101,7 +108,6 @@ public class jets_System {
     }
 //takes in all player attributes and creates a player object then adds it to the players arraylist
     public boolean addPlayer() {
-        sc.nextLine();
         System.out.println("Enter Player Name: ");
         String playerName = sc.nextLine();
 
@@ -119,6 +125,7 @@ public class jets_System {
                 sc.next();
             }
         }
+
         int receivingYards = -1;
         while (true) {
             System.out.println("Enter Receiving Yards: ");
@@ -175,6 +182,11 @@ public class jets_System {
 
        return true;
     }
+    public boolean addPlayer(Player p){
+        if (p==null) return false;
+        players.add(p);
+        return true;
+    }
     //Takes in user input of player name and then compares it to the list. If the name is found all
     //player attributes are listed
     public Player displayPlayer() {
@@ -183,8 +195,14 @@ public class jets_System {
             System.out.println("The list is currently empty");
             return null;
         }
+        System.out.println("Jets Players In Database");
+        for(Player p : players){
+            if(p != null && p.getName() != null){
+                System.out.println("------" + p.getName() + "------");
+            }
+        }
+        System.out.println("______________________________________________________");
 
-        sc.nextLine();
         System.out.println("Enter a Jets players name to search: ");
         String searchName = sc.nextLine();
 
@@ -211,6 +229,19 @@ public class jets_System {
         return null;
 
     }
+    public Player displayPlayer(String searchName){
+
+        if(players == null || players.isEmpty() || searchName == null || searchName.trim().isEmpty() ){
+            return null;
+        }
+        for (Player p : players){
+            if(p != null && p.getName() != null && p.getName().equalsIgnoreCase(searchName.trim())){
+                return p;
+            }
+        }
+        return null;
+    }
+
 //User enters player name, if match is found through the loop then one by one the players stat lines are shown and
     //the user is asked one by one if they would like to change the individual statistic.
     public boolean updatePlayer(){
@@ -218,7 +249,6 @@ public class jets_System {
             System.out.println("List is empty, cannot update player");
             return false;
         }
-        sc.nextLine();
         System.out.println("Please enter the Player you wish to update: ");
         String searchName = sc.nextLine();
 
@@ -268,6 +298,20 @@ public class jets_System {
         System.out.println("Player " + searchName.trim() + " was not found");
         return false;
     }
+
+    public boolean updatePlayer(Player targetPlayer, int newReceptions, int newYards, int newTDs, double newYPC, double newYAC){
+    if (players == null || players.isEmpty() || targetPlayer == null) return false;
+    for(int i = 0; i < players.size(); i++){
+        Player p = players.get(i);
+        if(p!=null && p.getName()!=null && p.getName().equalsIgnoreCase(targetPlayer.getName())){
+            Player updated = new Player(p.getName(), newReceptions, newYards, newTDs, newYPC, newYAC);
+            players.set(i, updated);
+            return true;
+        }
+    }
+    return false;
+    }
+
     //Takes in user input of player name, then loops through list until a match is found, confirms that user
     //wants to actually delete player and then appends the list accordingly
     public boolean deletePlayer(){
@@ -275,7 +319,6 @@ public class jets_System {
             System.out.println("List is empty, cannot delete players");
             return false;
         }
-        sc.nextLine();
         System.out.println("Enter the player you wish to remove: ");
         String searchName = sc.nextLine().trim();
 
@@ -305,13 +348,16 @@ public class jets_System {
         System.out.println("Player " + searchName.trim() + " was not found in the file");
         return false;
     }
+    public boolean deletePlayer(Player p){
+        if (players == null || players.isEmpty() || p == null) return  false;
+        return players.removeIf(existing ->existing.getName().equalsIgnoreCase(p.getName()));
+    }
     //User enters the names of two players, after confirming they are in the list the two players are listed one after another with their stats shown for the user to compare
     public boolean comparePlayers(){
         if (players == null || players.isEmpty()){
             System.out.println("List is empty, cannot compare players");
             return false;
         }
-        sc.nextLine();
         System.out.print("Please enter the name of the first player: ->");
         String playerOne = sc.nextLine().trim();
         if (playerOne.isEmpty()){
@@ -346,11 +392,78 @@ public class jets_System {
         if (p1 == null || p2 == null){
             return false;
         }
-        System.out.println("< Player Comparison Below >");
-        System.out.println(p1.toString());
-        System.out.println(p2.toString());
-        System.out.println("You decide who's better");
+        System.out.println("<><><><><><><><><><><><><>");
+        System.out.println("      Stat Comparison       ");
+        System.out.println("<><><><><><><><><><><><><>");
+        System.out.printf("%s VS. %s\n", p1.getName(), p2.getName());
+
+        int recYard = Math.abs(p1.getReceiving_yards() - p2.getReceiving_yards());
+        if (p1.getReceiving_yards() > p2.getReceiving_yards()){
+            System.out.printf("%-20s: %s leads %d to %d | %+d yards\n", "Receiving Yards", p1.getName(),p1.getReceiving_yards(), p2.getReceiving_yards(), recYard);
+        } else if (p2.getReceiving_yards() > p1.getReceiving_yards()) {
+            System.out.printf("%-20s: %s leads %d to %d | %+d yards\n", "Receiving Yards", p2.getName(), p2.getReceiving_yards(), p1.getReceiving_yards(), recYard);
+        }
+        else{
+            System.out.printf("%-20s: %s and %s are tied | %d to %d\n", "Receiving Yards", p1.getName(), p2.getName(), p1.getReceiving_yards(), p2.getReceiving_yards());
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
+        int recComp = Math.abs(p1.getReceptions() - p2.getReceptions());
+        if (p1.getReceptions() > p2.getReceptions()){
+            System.out.printf("%-20s: %s leads %d to %d | %+d receptions\n", "Receptions", p1.getName(), p1.getReceptions(), p2.getReceptions(), recComp);
+        } else if (p2.getReceptions() > p1.getReceptions()) {
+            System.out.printf("%-20s: %s leads %d to %d | %+d receptions\n", "Receptions", p2.getName(), p2.getReceptions(), p1.getReceptions(), recComp);
+        }
+        else{
+            System.out.printf("%-20s: %s and %s are tied | %d to %d\n", "Receptions", p1.getName(), p2.getName(), p1.getReceptions(), p2.getReceptions());
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
+        int tdComp = Math.abs(p1.getTouchdowns() - p2.getTouchdowns());
+        if (p1.getTouchdowns() > p2.getTouchdowns()){
+            System.out.printf("%-20s: %s leads %d to %d | %+d Touchdowns\n", "Touchdowns", p1.getName(), p1.getTouchdowns(), p2.getTouchdowns(), tdComp);
+        } else if (p2.getTouchdowns() > p1.getTouchdowns()) {
+            System.out.printf("%-20s: %s leads %d to %d | %+d Touchdowns\n", "Touchdowns", p2.getName(), p2.getTouchdowns(), p1.getTouchdowns(), tdComp);
+        }
+        else{
+            System.out.printf("%-20s: %s and %s are tied | %d to %d\n", "Touchdowns", p1.getName(), p2.getName(), p1.getTouchdowns(), p2.getTouchdowns());
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
+        double ypcComp = Math.abs(p1.getYards_per_catch() - p2.getYards_per_catch());
+        if (p1.getYards_per_catch() > p2.getYards_per_catch()){
+            System.out.printf("%-20s: %s leads %.2f to %.2f | %+.2f Yards Per Catch\n", "Yards Per Catch", p1.getName(), p1.getYards_per_catch(), p2.getYards_per_catch(), ypcComp);
+        } else if (p2.getYards_per_catch() > p1.getYards_per_catch()) {
+            System.out.printf("%-20s: %s leads %.2f to %.2f | %+.2f Yards Per Catch\n", "Yards Per Catch", p2.getName(), p2.getYards_per_catch(), p1.getYards_per_catch(), ypcComp);
+        }
+        else{
+            System.out.printf("%-20s: %s and %s are tied | %.2f to %.2f\n", "Yards Per Catch", p1.getName(), p2.getName(), p1.getYards_per_catch(), p2.getYards_per_catch());
+        }
+
+        //----------------------------------------------------------------------------------------------------
+        String yac = "Yards After Catch";
+        double yacComp = Math.abs(p1.getYards_after_catch() - p2.getYards_after_catch());
+        if (p1.getYards_after_catch() > p2.getYards_after_catch()){
+            System.out.printf("%-20s: %s lead %.2f to %.2f | %+.2f Yards After Catch\n", "Yards After Catch", p1.getName(), p1.getYards_after_catch(), p2.getYards_after_catch(), yacComp);
+        } else if (p2.getYards_after_catch() > p1.getYards_after_catch()) {
+            System.out.printf("%-20s: %s leads %.2f to %.2f | %+.2f Yards After Catch\n", "Yards After Catch", p2.getName(), p2.getYards_after_catch(), p1.getYards_after_catch(), yacComp);
+        }
+        else{
+            System.out.printf("%-20s: %s and %s are tied | %.2f to %.2f\n", yac, p1.getName(), p2.getName(), p1.getYards_after_catch(), p2.getYards_after_catch());
+        }
+        System.out.println("Press enter to return to the menu\n");
+        sc.nextLine();
+
 
         return false;
+    }
+
+    public String comparePlayers(Player p1, Player p2){
+        if(p1 == null || p2 == null) return null;
+        int yardDifference = Math.abs(p1.getReceiving_yards() - p2.getReceiving_yards());
+        return p1.getName() + "VS" + p2.getName() + "With a difference of: " + yardDifference;
     }
 }
