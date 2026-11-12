@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.util.ArrayList;
 
@@ -6,285 +8,270 @@ import java.util.ArrayList;
 public class jetsGUI extends JFrame {
     private jets_System jetsSystem;
     private FileManagerTools fileManagerTools;
-    private ArrayList<Player> players;
-    private String fileName = "Jets.txt";
 
-    private static final  Color JETS_GREEN = new Color(12, 55, 29);
+    private JTable jetsTable;
+    private DefaultTableModel jetsTableModel;
 
-    private JTextArea displayArea;
-    private JTextField nameInput, recInput, ydsInput, tdInput, ypcInput, yacInput;
+    private JTextField nameField, tdsField, yardsField, recField, ypcField, yacField;
+    private JLabel statusLabel;
 
-public jetsGUI(){
-    this.fileManagerTools = new FileManagerTools();
-    this.fileName = "Jets.txt";
-    this.players = fileManagerTools.loadFromFile(fileName);
-    this.jetsSystem = new jets_System();
+    public jetsGUI() {
+        jetsSystem = new jets_System();
+        fileManagerTools = new FileManagerTools();
+        setTitle("New York Jets Receiver Stats");
+        setSize(1000, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
 
-    setTitle("The New York Jets Stats Vault");
-    setValueFrame();
-}
-//Formatting entire GUI, adding text display area, adding the banner, adds all input areas, adds buttons
-public void setValueFrame(){
-    setSize(700,550);
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    setLocationRelativeTo(null);
-    setLayout(new BorderLayout(10,10));
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(18, 87, 64));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
-    //Top green jets banner
-    JPanel topPanel = new JPanel();
-    topPanel.setBackground(JETS_GREEN);
-    JLabel titleLabel = new JLabel("NEW YORK JETS RECEIVERS");
-    titleLabel.setForeground(Color.WHITE);
-    titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
-    topPanel.add(titleLabel);
-    add(topPanel,BorderLayout.NORTH);
+        JLabel titleLabel = new JLabel("New York Jets Receiver Stats");
+        titleLabel.setForeground(Color.white);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+        add(headerPanel, BorderLayout.NORTH);
 
-    //Making the bottom panel for the user input sections and the buttons
-    JPanel bottomPanel = new JPanel();
-    bottomPanel.setLayout(new BoxLayout(bottomPanel,BoxLayout.Y_AXIS));
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
+        leftPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        leftPanel.setPreferredSize(new Dimension(300, 0));
 
-    //Making the center display area
-    displayArea = new JTextArea();
-    displayArea.setEditable(false);
-    displayArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-    add(new JScrollPane(displayArea),BorderLayout.CENTER);
+        leftPanel.add(createFieldRow("Player Name: ", nameField = new JTextField(15)));
+        leftPanel.add(createFieldRow("Touchdowns (TD):", tdsField = new JTextField(15)));
+        leftPanel.add(createFieldRow("Receiving Yards:", yardsField = new JTextField(15)));
+        leftPanel.add(createFieldRow("Receptions:", recField = new JTextField(15)));
+        leftPanel.add(createFieldRow("Yards/Catch (YPC):", ypcField = new JTextField(15)));
+        leftPanel.add(createFieldRow("Yards After Catch (YAC):", yacField = new JTextField(15)));
 
-    //Input areas for adding individuals statistics
-    JPanel inputGrid = new JPanel(new GridLayout(3,4,5,5));
-    inputGrid.setBorder(BorderFactory.createEmptyBorder(5,10,5,10));
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        JButton addButton = new JButton("Add");
+        JButton updateButton = new JButton("Update");
+        JButton clearButton = new JButton("Clear");
+        JButton removeButton = new JButton("Remove");
 
-    inputGrid.add(new JLabel("Name:"));
-    nameInput = new JTextField();
-    inputGrid.add(nameInput);
-
-    inputGrid.add(new JLabel("Receptions:"));
-    recInput = new JTextField();
-    inputGrid.add(recInput);
-
-    inputGrid.add(new JLabel("Receiving Yards:"));
-    ydsInput = new JTextField();
-    inputGrid.add(ydsInput);
-
-    inputGrid.add(new JLabel("Touchdowns:"));
-    tdInput = new JTextField();
-    inputGrid.add(tdInput);
-
-    inputGrid.add(new JLabel("Yards Per Catch:"));
-    ypcInput = new JTextField();
-    inputGrid.add(ypcInput);
-
-    inputGrid.add(new JLabel("Yards After Catch:"));
-    yacInput = new JTextField();
-    inputGrid.add(yacInput);
-
-    bottomPanel.add(inputGrid);
-
-    //Adding the interactive buttons below the user input section
-    JPanel buttonRow = new JPanel(new FlowLayout());
-    JButton addPlayerButton = new JButton("Add Player");
-    JButton searchButton = new JButton("Search Player");
-    JButton compareButton = new JButton("Compare Players");
-    JButton updateButton = new JButton("Update Player");
-    JButton removePlayerButton = new JButton("Remove Player");
-    JButton refreshButton = new JButton("Refresh Players");
-
-    //Add the buttons we made to the row
-    buttonRow.add(addPlayerButton);
-    buttonRow.add(searchButton);
-    buttonRow.add(compareButton);
-    buttonRow.add(updateButton);
-    buttonRow.add(removePlayerButton);
-    buttonRow.add(refreshButton);
-
-    //Add the button row to the bottom panel
-    bottomPanel.add(buttonRow);
-    add(bottomPanel,BorderLayout.SOUTH);
-
-    //connecting the actual methods to the buttons
-    setupButtons(addPlayerButton, searchButton, compareButton, updateButton, removePlayerButton, refreshButton);
-
-    //Everytime the program starts, show the base roster
-    refreshDisplayList();
-}
-private void setupButtons(JButton addPlayerButton, JButton searchButton, JButton compareButton, JButton updateButton, JButton removePlayerButton, JButton refreshButton){
-//Adding all buttons along with the backend functions of them
-  addPlayerButton.addActionListener(e -> {
-      try {
-          String name = nameInput.getText().trim();
-          if(name.isEmpty()){
-              displayArea.setText("Whoops, player name cannot be empty");
-              return;
-          }
-          int rec = Integer.parseInt(recInput.getText().trim());
-          int yds = Integer.parseInt(ydsInput.getText().trim());
-          int td = Integer.parseInt(tdInput.getText().trim());
-          double ypc = Double.parseDouble(ypcInput.getText().trim());
-          double yac = Double.parseDouble(yacInput.getText().trim());
-
-          Player newPlayer = new Player(name, rec, yds, td, ypc, yac);
-          players.add(newPlayer);
-          fileManagerTools.saveToFile(players, fileName);
-
-          displayArea.setText("New Player Added: " + name);
-          clearInputs();
-          refreshDisplayList();
-
-      }
-      catch (NumberFormatException ex){
-          displayArea.setText("Please enter a number");
-      }
-  });
-
-  searchButton.addActionListener(e -> {
-      String searchName = nameInput.getText().trim();
-      if(searchName.isEmpty()){
-          displayArea.setText("Please enter a name in the search bar");
-          return;
-      }
-      Player foundPlayer = null;
-      for(Player p : players){
-          if(p.getName() != null && p.getName().equalsIgnoreCase(searchName)){
-              foundPlayer = p;
-              break;
-          }
-      }
-      if(foundPlayer != null){
-          String info = "=== Player Info ===\n\n" +
-                  "Name:               " + foundPlayer.getName() + " \n" +
-                  "Receptions:         " + foundPlayer.getReceptions() + " \n" +
-                  "Receiving Yards:    " + foundPlayer.getReceiving_yards() + " \n" +
-                  "Touchdowns:         " + foundPlayer.getTouchdowns() + " \n" +
-                  "Yards Per Catch:    " +foundPlayer.getYards_per_catch() +  " \n" +
-                  "Yards After Catch:  " + foundPlayer.getYards_after_catch() + " \n";
-          displayArea.setText(info);
+        JButton [] actionButtons =  {addButton, updateButton, clearButton, removeButton};
+        for (JButton button : actionButtons) {
+            button.setBackground(new Color (18, 87, 64));
+            button.setForeground(Color.white);
+            button.setOpaque(true);
+            button.setBorderPainted(false);
+        }
 
 
-      }
-      else{
-          displayArea.setText("Player not found");
-      }
-  });
+        buttonPanel.add(addButton);
+        buttonPanel.add(updateButton);
+        buttonPanel.add(clearButton);
+        buttonPanel.add(removeButton);
+        leftPanel.add(Box.createVerticalStrut(10));
+        leftPanel.add(buttonPanel);
 
-  compareButton.addActionListener(e -> {
-      String player1Name = nameInput.getText().trim();
-      if(player1Name.isEmpty()){
-          displayArea.setText("Please enter the first name in the search bar");
-          return;
-      }
-      Player p1 = findPlayerByName(player1Name);
-      if(p1 == null){
-          displayArea.setText(player1Name + " not found in roster");
-          return;
-      }
-      String player2Name = JOptionPane.showInputDialog(this, "enter the second name in the search bar" + ":", "Compare Receiver Stats", JOptionPane.QUESTION_MESSAGE);
+        JButton compareButton = new JButton("Compare Selected Players");
+        compareButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        leftPanel.add(Box.createVerticalStrut(15));
+        leftPanel.add(compareButton);
 
-      if(player2Name == null || player2Name.trim().isEmpty()){
-          return;
-      }
-      Player p2 = findPlayerByName(player2Name.trim());
-      if(p2 == null){
-          displayArea.setText(player2Name + " not found in roster");
-          return;
-      }
-      StringBuilder sb = new StringBuilder();
-      sb.append("=== Player Stat Comparison ===\n");
-      sb.append(String.format("%-15s |     %-25s\n", p1.getName(), p2.getName()));
-      sb.append("----------------------------------------------------------------------\n");
-      sb.append(String.format("Receptions:      %-13d | Receptions: %-13d\n", p1.getReceptions(), p2.getReceptions()));
-      sb.append(String.format("Receiving Yards: %-13d | Receiving Yards: %-13d\n", p1.getReceiving_yards(), p2.getReceiving_yards()));
-      sb.append(String.format("Touchdowns:      %-13d | Touchdowns: %-13d\n", p1.getTouchdowns(), p2.getTouchdowns()));
-      sb.append(String.format("Yards Per Catch:   %-13.1f | Yards Per Catch: %-13.1f\n", p1.getYards_per_catch(), p2.getYards_per_catch()));
-      sb.append(String.format("Yards After Catch: %-13.1f | Yards After Catch: %-13.1f\n", p1.getYards_after_catch(), p2.getYards_after_catch()));
+        compareButton.setBackground(Color.black); // Dark Navy
+        compareButton.setForeground(Color.WHITE);
+        compareButton.setOpaque(true);
+        compareButton.setBorderPainted(false);
 
-      displayArea.setText(sb.toString());
+        add(leftPanel, BorderLayout.WEST);
 
+        String[] columns = {"Name", "TDs", "Yards", "Receptions", "YPC", "YAC"};
+        jetsTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        jetsTable = new JTable(jetsTableModel);
+        jetsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JTableHeader header = jetsTable.getTableHeader();
+        header.setBorder(BorderFactory.createLineBorder(Color.black));
+        header.setFont(new Font("Arial", Font.BOLD, 13));
+        JScrollPane scrollPane = new JScrollPane(jetsTable);
+        add(scrollPane, BorderLayout.CENTER);
 
-  });
+        //Bottom Bar
 
-  updateButton.addActionListener(e -> {
-      String searchName = nameInput.getText().trim();
-      if(searchName.isEmpty()){
-          displayArea.setText("Please enter the name in the search bar");
-          return;
-      }
-      Player targetPlayer = findPlayerByName(searchName);
-      if(targetPlayer == null) {
-          displayArea.setText("Player not found");
-          return;
-      }
-      try{
-          if(!recInput.getText().trim().isEmpty()){targetPlayer.setReceptions(Integer.parseInt(recInput.getText().trim()));}
+        statusLabel = new JLabel("Select Player in row to edit or remove.");
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        add(statusLabel, BorderLayout.SOUTH);
 
-          if(!ydsInput.getText().trim().isEmpty()){targetPlayer.setReceiving_yards(Integer.parseInt(ydsInput.getText().trim()));}
+        //Listeners
 
-          if(!tdInput.getText().trim().isEmpty()){targetPlayer.setTouchdowns(Integer.parseInt(tdInput.getText().trim()));}
+        jetsTable.getSelectionModel().addListSelectionListener(e -> {
+            int selectedRow = jetsTable.getSelectedRow();
+            if (selectedRow >= 0 && !e.getValueIsAdjusting()) {
+                nameField.setText(jetsTableModel.getValueAt(selectedRow, 0).toString());
+                tdsField.setText(jetsTableModel.getValueAt(selectedRow, 1).toString());
+                yardsField.setText(jetsTableModel.getValueAt(selectedRow, 2).toString());
+                recField.setText(jetsTableModel.getValueAt(selectedRow, 3).toString());
+                ypcField.setText(jetsTableModel.getValueAt(selectedRow, 4).toString());
+                yacField.setText(jetsTableModel.getValueAt(selectedRow, 5).toString());
+                statusLabel.setText(" Row " + (selectedRow + 1) + " selected. Make your changes and click Update.");
+            }
+        });
 
-          if(!ypcInput.getText().trim().isEmpty()){targetPlayer.setYards_per_catch(Double.parseDouble(ypcInput.getText().trim()));}
+        //Clear Button
 
-          if(!yacInput.getText().trim().isEmpty()){targetPlayer.setYards_after_catch(Double.parseDouble(yacInput.getText().trim()));}
+        clearButton.addActionListener(e -> clearForm());
 
-          fileManagerTools.saveToFile(players, fileName);
-          displayArea.setText("Player Updated");
-          clearInputs();
-          refreshDisplayList();
-      }
-      catch(NumberFormatException nfe){
-          displayArea.setText("Please enter valid stats into the stat bars");
-      }
+        //Add Button
+        addButton.addActionListener(e -> {
+            try{
+                String name = nameField.getText().trim();
+                int tds = Integer.parseInt(tdsField.getText().trim());
+                int yards = Integer.parseInt(yardsField.getText().trim());
+                int rec = Integer.parseInt(recField.getText().trim());
+                double ypc = Double.parseDouble(ypcField.getText().trim());
+                double yac = Double.parseDouble(yacField.getText().trim());
 
-  });
+                if (name.isEmpty()){
+                    JOptionPane.showMessageDialog(this, "Please enter a name, it cannot be empty!");
+                    return;
+                }
+                Player newPlayer = new Player(name,rec, yards, tds, ypc, yac);
+                jetsSystem.addPlayer(newPlayer);
+                fileManagerTools.saveToFile(jetsSystem.getPlayers(), "Jets.txt");
 
-  removePlayerButton.addActionListener(e -> {
-      String searchName = nameInput.getText().trim();
-      if(searchName.isEmpty()){
-          displayArea.setText("Please enter a name in the name bar");
-          return;
-      }
-      boolean removed = players.removeIf(p -> p.getName() != null && p.getName().equalsIgnoreCase(searchName));
-      if(removed){
-          fileManagerTools.saveToFile(players, fileName);
-          displayArea.setText(searchName + " has been removed");
-          clearInputs();
-          refreshDisplayList();
-      }
-      else {
-          displayArea.setText(searchName + " not found on the roster");
-      }
+                loadTableData();
+                clearForm();
+                statusLabel.setText(" Added " + name + " successfully. ");
+            }
+            catch (NumberFormatException ex){
+                JOptionPane.showMessageDialog(this, "Please enter a valid number!");
+            }
+        });
 
-  });
-  refreshButton.addActionListener(e -> refreshDisplayList());
-}
-//Sorts through the list of players and finds the player that matches the user input
-private Player findPlayerByName(String name){
-    for(Player p : players){
-        if(p.getName() != null && p.getName().equalsIgnoreCase(name)){
-            return p;
+        updateButton.addActionListener(e -> {
+            int selectedRow = jetsTable.getSelectedRow();
+            if (selectedRow < 0) {
+                JOptionPane.showMessageDialog(this, "Select a player from the table to update.");
+                return;
+            }
+            try {
+                String name = nameField.getText().trim();
+                int tds = Integer.parseInt(tdsField.getText().trim());
+                int yards = Integer.parseInt(yardsField.getText().trim());
+                int rec = Integer.parseInt(recField.getText().trim());
+                double ypc = Double.parseDouble(ypcField.getText().trim());
+                double yac = Double.parseDouble(yacField.getText().trim());
+
+                Player target = jetsSystem.displayPlayer(jetsTableModel.getValueAt(selectedRow, 0).toString());
+                if(target != null){
+                    jetsSystem.updatePlayer(target, rec, yards, tds, ypc, yac);
+                    fileManagerTools.saveToFile(jetsSystem.getPlayers(), "Jets.txt");
+                    loadTableData();
+                    clearForm();
+                    statusLabel.setText(" Updated " + name + " successfully. ");
+                }
+            }
+            catch (NumberFormatException ex){
+                JOptionPane.showMessageDialog(this, "Please enter a valid number!");
+            }
+        });
+
+        //Remove Button
+        removeButton.addActionListener(e -> {
+            int selectedRow = jetsTable.getSelectedRow();
+            if (selectedRow < 0) {
+                JOptionPane.showMessageDialog(this, "Select a player from the table to remove.");
+                return;
+            }
+            String playerName = jetsTableModel.getValueAt(selectedRow, 0).toString();
+            int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to remove " + playerName + "?", "Confirm to delete", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                Player target = jetsSystem.displayPlayer(playerName);
+                if (target != null) {
+                    jetsSystem.deletePlayer(target);
+                    fileManagerTools.saveToFile(jetsSystem.getPlayers(), "Jets.txt");
+                    loadTableData();
+                    clearForm();
+                    statusLabel.setText(" Removed " + playerName + " successfully. ");
+                }
+            }
+        });
+
+        //Compare Button
+        compareButton.addActionListener(e -> {
+            ArrayList<Player> players = jetsSystem.getPlayers();
+            if(players.size()<2){
+                JOptionPane.showMessageDialog(this, "Please select at least two players to compare!");
+                return;
+            }
+            String[] names = players.stream().map(Player::getName).toArray(String[]::new);
+            String p1Name = (String) JOptionPane.showInputDialog(this, "Select First Player: ", "Compare Players", JOptionPane.QUESTION_MESSAGE, null, names, names[0]);
+            if(p1Name==null) return;
+
+            String p2Name = (String) JOptionPane.showInputDialog(this, "Select Second Player: ", "Compare Players", JOptionPane.QUESTION_MESSAGE, null, names, names[1]);
+            if(p2Name==null) return;
+
+            Player p1 = null;
+            Player p2 = null;
+
+            for (Player p : players) {
+                if(p.getName().equals(p1Name)){
+                    p1 = p;
+                }
+                if(p.getName().equals(p2Name)){
+                    p2 = p;
+                }
+            }
+            if(p1 != null && p2 != null){
+                String comparisonResult = jetsSystem.comparePlayers(p1, p2);
+                JOptionPane.showMessageDialog(this, comparisonResult, "Player Comparison", JOptionPane.INFORMATION_MESSAGE );
+            }
+        });
+
+        loadTableData();
+
+    }
+
+    private JPanel createFieldRow(String labelText,JTextField textField) {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Arial", Font.PLAIN, 12));
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(textField, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void loadTableData(){
+        jetsTableModel.setRowCount(0);
+        ArrayList<Player> players = jetsSystem.getPlayers();
+        if(players!= null){
+            for(Player p : players){
+                String formattedYpc = String.format("%.1f", p.getYards_per_catch());
+                String formattedYac = String.format("%.1f", p.getYards_after_catch());
+                Object[] row = {
+                        p.getName(),
+                        p.getTouchdowns(),
+                        p.getReceiving_yards(),
+                        p.getReceptions(),
+                        formattedYpc,
+                        formattedYac
+                };
+                jetsTableModel.addRow(row);
+            }
         }
     }
-    return null;
-}
-//Clears all inputs in the input boxes
-private void clearInputs(){
-    recInput.setText("");
-    ydsInput.setText("");
-    ypcInput.setText("");
-    yacInput.setText("");
-    nameInput.setText("");
-    tdInput.setText("");
-}
-//Redisplays full list of players and their stats
-private void refreshDisplayList(){
-    StringBuilder sb = new StringBuilder("=== Current Player List (" + fileName + ") ===\n\n");
-    if(players.isEmpty()){
-        sb.append("No players in roster");
-    }
-    else{
-        for(Player p : players){
-            sb.append("• ").append(p.toString()).append("\n");
-        }
-    }
-    displayArea.setText(sb.toString());
-}
 
+    private void clearForm(){
+        nameField.setText("");
+        tdsField.setText("");
+        yardsField.setText("");
+        recField.setText("");
+        ypcField.setText("");
+        yacField.setText("");
+        jetsTable.clearSelection();
+        statusLabel.setText("Cleared, time to add a new player");
+
+    }
 
 }

@@ -4,28 +4,35 @@ import java.util.Scanner;
 public class jets_System {
     private ArrayList<Player> players = new ArrayList<Player>();
     private Scanner sc = new Scanner(System.in);
-    private String filename;
-    private FileManagerTools fileManagerTools;
-//Creating a fileManagerTools object
-    public jets_System(boolean isTest){
-        this.fileManagerTools = new FileManagerTools();
-        System.out.println("Enter the file name you would like to open: ->");
-        String inputName = sc.nextLine().trim();
+    private DatabaseManager dbManager;
+    private FileManagerTools fileManager;
 
-        if (inputName.isEmpty()){
-            System.out.println("No file exists. Now Loading Jets.txt");
-            this.filename = "Jets.txt";
-        }
-        else{
-            this.filename = inputName;
-        }
-        this.players = this.fileManagerTools.loadFromFile(this.filename);
+//Creating a fileManagerTools object
+
+    public jets_System(boolean isTest){
+        this.dbManager = new DatabaseManager();
+        this.players = this.dbManager.getPlayers();
+
     }
 
     public jets_System(){
-        this.fileManagerTools = new FileManagerTools();
-        this.filename = "Jets.txt";
-        this.players = this.fileManagerTools.loadFromFile(this.filename);
+       this.dbManager = new DatabaseManager();
+       this.players = this.dbManager.getPlayers();
+
+       if(this.players.isEmpty()){
+           FileManagerTools fmt = new FileManagerTools();
+           ArrayList<Player> oldTextPLayer = fmt.loadFromFile("Jets.txt");
+           if(!oldTextPLayer.isEmpty()){
+               for(Player p : oldTextPLayer){
+                   dbManager.insertPlayer(p);
+               }
+               this.players = this.dbManager.getPlayers();
+               System.out.println("Succesfully merged the txt file and the database!");
+           }
+           else{
+               System.out.println("Nothing to merge in the file!");
+           }
+       }
     }
 
 //Printing out menu options and taking in user input to save as choice
@@ -90,16 +97,15 @@ public class jets_System {
                     break;
 
                 case 6:
-                    System.out.println("Saving file changed to " + this.filename + " Leaving Application now");
-                    this.fileManagerTools.saveToFile(players, this.filename);
+                    System.out.println("Leaving the applicaton now");
                     break;
 
-                default:
-                    System.out.println("Invalid choice try again");
+                    default:
+                        System.out.println("Invalid choice, enter a number between 1 and 6");
+
             }
             if (dataChanged){
-                this.fileManagerTools.saveToFile(players, this.filename);
-                System.out.println(this.filename + " updated successfully!");
+                System.out.println("Updated Data has been saved");
             }
 
         }
@@ -177,14 +183,17 @@ public class jets_System {
                 sc.next();
             }
         }
-        players.add(new Player(playerName, receptions, receivingYards, touchDowns, yardsPerCatch, yardsAfterCatch));
-        System.out.println("<Player Added To List>");
+        Player newPlayer = new Player(playerName, receptions, receivingYards, touchDowns, yardsPerCatch, yardsAfterCatch);
+        players.add(newPlayer);
+        dbManager.insertPlayer(newPlayer);
+        System.out.println("Player has been added to the new list");
 
        return true;
     }
     public boolean addPlayer(Player p){
         if (p==null) return false;
         players.add(p);
+        dbManager.insertPlayer(p);
         return true;
     }
     //Takes in user input of player name and then compares it to the list. If the name is found all
@@ -287,6 +296,8 @@ public class jets_System {
                     Player updatedPlayer = new Player(p.getName(), newReceptions, newRecYards, newTD, newYPC, newYAC);
                     players.set(i, updatedPlayer);
 
+                    dbManager.updatePlayer(updatedPlayer);
+
                     System.out.println("You have succesfully updated " + p.getName() + "'s stat profile");
                     return true;
                 }
@@ -306,6 +317,7 @@ public class jets_System {
         if(p!=null && p.getName()!=null && p.getName().equalsIgnoreCase(targetPlayer.getName())){
             Player updated = new Player(p.getName(), newReceptions, newYards, newTDs, newYPC, newYAC);
             players.set(i, updated);
+            dbManager.updatePlayer(updated);
             return true;
         }
     }
@@ -336,6 +348,7 @@ public class jets_System {
 
                 if (confirmation.equalsIgnoreCase("y") || confirmation.equalsIgnoreCase("yes")){
                     players.remove(i);
+                    dbManager.deletePlayer(p);
                     System.out.println("Player successfully removed");
                     return true;
                 }
@@ -350,7 +363,11 @@ public class jets_System {
     }
     public boolean deletePlayer(Player p){
         if (players == null || players.isEmpty() || p == null) return  false;
-        return players.removeIf(existing ->existing.getName().equalsIgnoreCase(p.getName()));
+        boolean deleted = players.removeIf(existing ->existing.getName().equalsIgnoreCase(p.getName()));
+        if (deleted){
+            dbManager.deletePlayer(p);
+        }
+        return deleted;
     }
     //User enters the names of two players, after confirming they are in the list the two players are listed one after another with their stats shown for the user to compare
     public boolean comparePlayers(){
@@ -460,10 +477,77 @@ public class jets_System {
 
         return false;
     }
+    public String comparePlayers(Player p1, Player p2) {
+        if (p1 == null || p2 == null) {
+            return "Error: One or both players could not be found.";
+        }
 
-    public String comparePlayers(Player p1, Player p2){
+        StringBuilder sb = new StringBuilder();
+        sb.append("<><><><><><><><><><><><><>\n");
+        sb.append("      Stat Comparison       \n");
+        sb.append("<><><><><><><><><><><><><>\n");
+        sb.append(String.format("%s VS. %s\n\n", p1.getName(), p2.getName()));
+
+        // Receiving Yards
+        int recYard = Math.abs(p1.getReceiving_yards() - p2.getReceiving_yards());
+        if (p1.getReceiving_yards() > p2.getReceiving_yards()){
+            sb.append(String.format("%-20s: %s leads %d to %d | %+d yards\n", "Receiving Yards", p1.getName(), p1.getReceiving_yards(), p2.getReceiving_yards(), recYard));
+        } else if (p2.getReceiving_yards() > p1.getReceiving_yards()) {
+            sb.append(String.format("%-20s: %s leads %d to %d | %+d yards\n", "Receiving Yards", p2.getName(), p2.getReceiving_yards(), p1.getReceiving_yards(), recYard));
+        } else {
+            sb.append(String.format("%-20s: %s and %s are tied | %d to %d\n", "Receiving Yards", p1.getName(), p2.getName(), p1.getReceiving_yards(), p2.getReceiving_yards()));
+        }
+
+        // Receptions
+        int recComp = Math.abs(p1.getReceptions() - p2.getReceptions());
+        if (p1.getReceptions() > p2.getReceptions()){
+            sb.append(String.format("%-20s: %s leads %d to %d | %+d receptions\n", "Receptions", p1.getName(), p1.getReceptions(), p2.getReceptions(), recComp));
+        } else if (p2.getReceptions() > p1.getReceptions()) {
+            sb.append(String.format("%-20s: %s leads %d to %d | %+d receptions\n", "Receptions", p2.getName(), p2.getReceptions(), p1.getReceptions(), recComp));
+        } else {
+            sb.append(String.format("%-20s: %s and %s are tied | %d to %d\n", "Receptions", p1.getName(), p2.getName(), p1.getReceptions(), p2.getReceptions()));
+        }
+
+        // Touchdowns
+        int tdComp = Math.abs(p1.getTouchdowns() - p2.getTouchdowns());
+        if (p1.getTouchdowns() > p2.getTouchdowns()){
+            sb.append(String.format("%-20s: %s leads %d to %d | %+d Touchdowns\n", "Touchdowns", p1.getName(), p1.getTouchdowns(), p2.getTouchdowns(), tdComp));
+        } else if (p2.getTouchdowns() > p1.getTouchdowns()) {
+            sb.append(String.format("%-20s: %s leads %d to %d | %+d Touchdowns\n", "Touchdowns", p2.getName(), p2.getTouchdowns(), p1.getTouchdowns(), tdComp));
+        } else {
+            sb.append(String.format("%-20s: %s and %s are tied | %d to %d\n", "Touchdowns", p1.getName(), p2.getName(), p1.getTouchdowns(), p2.getTouchdowns()));
+        }
+
+        // Yards Per Catch
+        double ypcComp = Math.abs(p1.getYards_per_catch() - p2.getYards_per_catch());
+        if (p1.getYards_per_catch() > p2.getYards_per_catch()){
+            sb.append(String.format("%-20s: %s leads %.1f to %.1f | %+.1f Yards Per Catch\n", "Yards Per Catch", p1.getName(), p1.getYards_per_catch(), p2.getYards_per_catch(), ypcComp));
+        } else if (p2.getYards_per_catch() > p1.getYards_per_catch()) {
+            sb.append(String.format("%-20s: %s leads %.1f to %.1f | %+.1f Yards Per Catch\n", "Yards Per Catch", p2.getName(), p2.getYards_per_catch(), p1.getYards_per_catch(), ypcComp));
+        } else {
+            sb.append(String.format("%-20s: %s and %s are tied | %.1f to %.1f\n", "Yards Per Catch", p1.getName(), p2.getName(), p1.getYards_per_catch(), p2.getYards_per_catch()));
+        }
+
+        // Yards After Catch
+        double yacComp = Math.abs(p1.getYards_after_catch() - p2.getYards_after_catch());
+        if (p1.getYards_after_catch() > p2.getYards_after_catch()){
+            sb.append(String.format("%-20s: %s leads %.1f to %.1f | %+.1f Yards After Catch\n", "Yards After Catch", p1.getName(), p1.getYards_after_catch(), p2.getYards_after_catch(), yacComp));
+        } else if (p2.getYards_after_catch() > p1.getYards_after_catch()) {
+            sb.append(String.format("%-20s: %s leads %.1f to %.1f | %+.1f Yards After Catch\n", "Yards After Catch", p2.getName(), p2.getYards_after_catch(), p1.getYards_after_catch(), yacComp));
+        } else {
+            sb.append(String.format("%-20s: %s and %s are tied | %.1f to %.1f\n", "Yards After Catch", p1.getName(), p2.getName(), p1.getYards_after_catch(), p2.getYards_after_catch()));
+        }
+
+        return sb.toString();
+    }
+
+    /*public String comparePlayers(Player p1, Player p2){
         if(p1 == null || p2 == null) return null;
         int yardDifference = Math.abs(p1.getReceiving_yards() - p2.getReceiving_yards());
         return p1.getName() + "VS" + p2.getName() + "With a difference of: " + yardDifference;
+    }
+*/
+    public ArrayList<Player> getPlayers() {
+        return this.players;
     }
 }
