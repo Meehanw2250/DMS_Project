@@ -9,7 +9,7 @@ class jets_SystemTest {
 //setup to run before each test AKA a clean slate
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        system = new jets_System();
+        system = new jets_System("jets");
     }
 //tests to see if a file can be opened, can be read and is then compared with the real output
     @Test

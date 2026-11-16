@@ -1,6 +1,9 @@
 import java.util.ArrayList;
 import java.util.Scanner;
 
+/**
+ *The system that includes most actionable methods needed to interact with the object and run the program
+ */
 public class jets_System {
     private ArrayList<Player> players = new ArrayList<Player>();
     private Scanner sc = new Scanner(System.in);
@@ -10,13 +13,17 @@ public class jets_System {
 //Creating a fileManagerTools object
 
     public jets_System(boolean isTest){
-        this.dbManager = new DatabaseManager();
+        this.dbManager = new DatabaseManager("jets");
         this.players = this.dbManager.getPlayers();
 
     }
 
-    public jets_System(){
-       this.dbManager = new DatabaseManager();
+    /**
+     *
+     * @param dbName
+     */
+    public jets_System(String dbName){
+       this.dbManager = new DatabaseManager(dbName);
        this.players = this.dbManager.getPlayers();
 
        if(this.players.isEmpty()){
@@ -324,8 +331,11 @@ public class jets_System {
     return false;
     }
 
-    //Takes in user input of player name, then loops through list until a match is found, confirms that user
-    //wants to actually delete player and then appends the list accordingly
+    /**
+     * Takes in user input of player name, then loops through list until a match is found, confirms that user
+     * wants to actually delete player and then appends the list accordingly
+     * @return
+     */
     public boolean deletePlayer(){
         if (players == null || players.isEmpty()){
             System.out.println("List is empty, cannot delete players");
@@ -361,6 +371,12 @@ public class jets_System {
         System.out.println("Player " + searchName.trim() + " was not found in the file");
         return false;
     }
+
+    /**
+     * Compares player names between list and user input, if match then use dbManager object to delete the player
+     * @param p
+     * @return
+     */
     public boolean deletePlayer(Player p){
         if (players == null || players.isEmpty() || p == null) return  false;
         boolean deleted = players.removeIf(existing ->existing.getName().equalsIgnoreCase(p.getName()));
@@ -369,7 +385,11 @@ public class jets_System {
         }
         return deleted;
     }
-    //User enters the names of two players, after confirming they are in the list the two players are listed one after another with their stats shown for the user to compare
+
+    /**
+     * User enters the names of two players, after confirming they are in the list the two players are listed one after another with their stats shown for the user to compare
+     * @return
+     */
     public boolean comparePlayers(){
         if (players == null || players.isEmpty()){
             System.out.println("List is empty, cannot compare players");
@@ -477,6 +497,13 @@ public class jets_System {
 
         return false;
     }
+
+    /**
+     * Takes all stats from two players, and makes the individual comparison per statistic. Depending on the outcome a specific text will print to the screen to display the difference
+     * @param p1
+     * @param p2
+     * @return
+     */
     public String comparePlayers(Player p1, Player p2) {
         if (p1 == null || p2 == null) {
             return "Error: One or both players could not be found.";
@@ -547,6 +574,11 @@ public class jets_System {
         return p1.getName() + "VS" + p2.getName() + "With a difference of: " + yardDifference;
     }
 */
+
+    /**
+     * Returns the entire list of players
+     * @return
+     */
     public ArrayList<Player> getPlayers() {
         return this.players;
     }

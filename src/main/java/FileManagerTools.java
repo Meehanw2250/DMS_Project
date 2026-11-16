@@ -2,9 +2,18 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+/**
+ * Class containing all tools used to read from and write to a text file
+ * Not necessary for the updated database version
+ */
 public class FileManagerTools {
-//Creates a new printwriter to a specific file name and then goes through each player block by block
-    //grabbing each variable as seperated by a comma and writing it into said file.
+    /**
+     * Creates a new printwriter to a specific file name and then goes through each player block by block
+     * grabbing each variable as seperated by a comma and writing it into said file.
+     * @param players
+     * @param filename
+     * @return
+     */
     public boolean saveToFile(ArrayList<Player> players, String filename){
         try(PrintWriter printWriter = new PrintWriter(new FileWriter(filename))){
             for (Player p : players){
@@ -24,8 +33,12 @@ public class FileManagerTools {
         }
 
     }
-    //creates a new file instance based on the user provided file name, reads each player and adds it back into the file piewce by piece as seperated by parts of the index. It then takes the parts and puts them back together into
-    //individual players in the list again.
+
+    /**
+     * creates a new file instance based on the user provided file name, reads each player and adds it back into the file piewce by piece as seperated by parts of the index. It then takes the parts and puts them back together into individual players in the list again.
+     * @param filename
+     * @return
+     */
     public ArrayList<Player> loadFromFile(String filename){
         ArrayList<Player> reloadedPlayers = new ArrayList<>();
         File file = new File(filename);

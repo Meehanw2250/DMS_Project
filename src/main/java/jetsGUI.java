@@ -4,8 +4,11 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.util.ArrayList;
 
-//All backend processes and the arraylist to store everything
+/**
+ * All backend processes and the arraylist to store everything
+ */
 public class jetsGUI extends JFrame {
+
     private jets_System jetsSystem;
     private FileManagerTools fileManagerTools;
 
@@ -15,8 +18,15 @@ public class jetsGUI extends JFrame {
     private JTextField nameField, tdsField, yardsField, recField, ypcField, yacField;
     private JLabel statusLabel;
 
+    /**
+     * Class used to create the framework of the entire User Interface
+     */
     public jetsGUI() {
-        jetsSystem = new jets_System();
+        String dbName = JOptionPane.showInputDialog(null, "Enter the database name");
+        if (dbName == null || dbName.trim().isEmpty()) {
+            dbName = "jets";
+        }
+        jetsSystem = new jets_System(dbName);
         fileManagerTools = new FileManagerTools();
         setTitle("New York Jets Receiver Stats");
         setSize(1000, 600);
@@ -83,6 +93,9 @@ public class jetsGUI extends JFrame {
         String[] columns = {"Name", "TDs", "Yards", "Receptions", "YPC", "YAC"};
         jetsTableModel = new DefaultTableModel(columns, 0) {
             @Override
+            /**
+             * So the user can not directly type into the display area
+             */
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
@@ -116,11 +129,14 @@ public class jetsGUI extends JFrame {
             }
         });
 
-        //Clear Button
-
+        /**
+         * Clear button
+         */
         clearButton.addActionListener(e -> clearForm());
 
-        //Add Button
+        /**
+         * Add button
+         */
         addButton.addActionListener(e -> {
             try{
                 String name = nameField.getText().trim();
@@ -146,7 +162,9 @@ public class jetsGUI extends JFrame {
                 JOptionPane.showMessageDialog(this, "Please enter a valid number!");
             }
         });
-
+/**
+ * Update button
+ */
         updateButton.addActionListener(e -> {
             int selectedRow = jetsTable.getSelectedRow();
             if (selectedRow < 0) {
@@ -175,7 +193,9 @@ public class jetsGUI extends JFrame {
             }
         });
 
-        //Remove Button
+        /**
+         * Remove button
+         */
         removeButton.addActionListener(e -> {
             int selectedRow = jetsTable.getSelectedRow();
             if (selectedRow < 0) {
@@ -197,7 +217,9 @@ public class jetsGUI extends JFrame {
             }
         });
 
-        //Compare Button
+        /**
+         * Compare button
+         */
         compareButton.addActionListener(e -> {
             ArrayList<Player> players = jetsSystem.getPlayers();
             if(players.size()<2){
@@ -232,6 +254,12 @@ public class jetsGUI extends JFrame {
 
     }
 
+    /**
+     * Creating the individual rows where information will be displayed
+     * @param labelText
+     * @param textField
+     * @return
+     */
     private JPanel createFieldRow(String labelText,JTextField textField) {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
@@ -242,6 +270,9 @@ public class jetsGUI extends JFrame {
         return panel;
     }
 
+    /**
+     * Reads the player stats and loads it into the rows stat by stat
+     */
     private void loadTableData(){
         jetsTableModel.setRowCount(0);
         ArrayList<Player> players = jetsSystem.getPlayers();
